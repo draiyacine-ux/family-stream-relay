@@ -1,0 +1,128 @@
+[
+  {
+    "id": "1178453",
+    "name": "beIN SPORTS 1 (4K / UHD)",
+    "category": "beIN Sports (Arabe)",
+    "url": "http://dinofox.sbs:80/play/live.php?mac=00:1A:79:B5:0D:61&stream=1178453&extension=ts"
+  },
+  {
+    "id": "1178452",
+    "name": "beIN SPORTS 2 (FHD)",
+    "category": "beIN Sports (Arabe)",
+    "url": "http://dinofox.sbs:80/play/live.php?mac=00:1A:79:B5:0D:61&stream=1178452&extension=ts"
+  },
+  {
+    "id": "1178451",
+    "name": "beIN SPORTS 3 (FHD)",
+    "category": "beIN Sports (Arabe)",
+    "url": "http://dinofox.sbs:80/play/live.php?mac=00:1A:79:B5:0D:61&stream=1178451&extension=ts"
+  },
+  {
+    "id": "1284535",
+    "name": "beIN SPORTS 4 (FHD / Event)",
+    "category": "beIN Sports (Arabe)",
+    "url": "http://dinofox.sbs:80/play/live.php?mac=00:1A:79:B5:0D:61&stream=1284535&extension=ts"
+  },
+  {
+    "id": "1178449",
+    "name": "beIN SPORTS 5 (FHD)",
+    "category": "beIN Sports (Arabe)",
+    "url": "http://dinofox.sbs:80/play/live.php?mac=00:1A:79:B5:0D:61&stream=1178449&extension=ts"
+  },
+  {
+    "id": "1178448",
+    "name": "beIN SPORTS 6 (FHD)",
+    "category": "beIN Sports (Arabe)",
+    "url": "http://dinofox.sbs:80/play/live.php?mac=00:1A:79:B5:0D:61&stream=1178448&extension=ts"
+  },
+  {
+    "id": "1178447",
+    "name": "beIN SPORTS 7 (FHD)",
+    "category": "beIN Sports (Arabe)",
+    "url": "http://dinofox.sbs:80/play/live.php?mac=00:1A:79:B5:0D:61&stream=1178447&extension=ts"
+  },
+  {
+    "id": "1178455",
+    "name": "beIN SPORTS NEWS (FHD)",
+    "category": "beIN Sports (Arabe)",
+    "url": "http://dinofox.sbs:80/play/live.php?mac=00:1A:79:B5:0D:61&stream=1178455&extension=ts"
+  },
+  {
+    "id": "1066880",
+    "name": "beIN SPORTS AFC 1 (HD)",
+    "category": "beIN Sports (Arabe)",
+    "url": "http://dinofox.sbs:80/play/live.php?mac=00:1A:79:B5:0D:61&stream=1066880&extension=ts"
+  },
+  {
+    "id": "1066877",
+    "name": "beIN SPORTS AFC 2 (HD)",
+    "category": "beIN Sports (Arabe)",
+    "url": "http://dinofox.sbs:80/play/live.php?mac=00:1A:79:B5:0D:61&stream=1066877&extension=ts"
+  },
+  {
+    "id": "845393",
+    "name": "CANAL+ FOOT (4K / HEVC)",
+    "category": "France Sports",
+    "url": "http://dinofox.sbs:80/play/live.php?mac=00:1A:79:B5:0D:61&stream=845393&extension=ts"
+  },
+  {
+    "id": "845395",
+    "name": "CANAL+ SPORT (4K / HEVC)",
+    "category": "France Sports",
+    "url": "http://dinofox.sbs:80/play/live.php?mac=00:1A:79:B5:0D:61&stream=845395&extension=ts"
+  },
+  {
+    "id": "845394",
+    "name": "CANAL+ SPORT 360 (HEVC)",
+    "category": "France Sports",
+    "url": "http://dinofox.sbs:80/play/live.php?mac=00:1A:79:B5:0D:61&stream=845394&extension=ts"
+  },
+  {
+    "id": "845390",
+    "name": "beIN SPORTS 1 FRANCE (HEVC)",
+    "category": "France Sports",
+    "url": "http://dinofox.sbs:80/play/live.php?mac=00:1A:79:B5:0D:61&stream=845390&extension=ts"
+  },
+  {
+    "id": "845389",
+    "name": "beIN SPORTS 2 FRANCE (HEVC)",
+    "category": "France Sports",
+    "url": "http://dinofox.sbs:80/play/live.php?mac=00:1A:79:B5:0D:61&stream=845389&extension=ts"
+  },
+  {
+    "id": "845388",
+    "name": "beIN SPORTS 3 FRANCE (HEVC)",
+    "category": "France Sports",
+    "url": "http://dinofox.sbs:80/play/live.php?mac=00:1A:79:B5:0D:61&stream=845388&extension=ts"
+  },
+  {
+    "id": "845387",
+    "name": "RMC SPORT 1 (HEVC)",
+    "category": "France Sports",
+    "url": "http://dinofox.sbs:80/play/live.php?mac=00:1A:79:B5:0D:61&stream=845387&extension=ts"
+  },
+  {
+    "id": "845386",
+    "name": "RMC SPORT 2 (HEVC)",
+    "category": "France Sports",
+    "url": "http://dinofox.sbs:80/play/live.php?mac=00:1A:79:B5:0D:61&stream=845386&extension=ts"
+  },
+  {
+    "id": "1410044",
+    "name": "DAZN 1 FRANCE (FHD Ligue 1)",
+    "category": "France Sports",
+    "url": "http://dinofox.sbs:80/play/live.php?mac=00:1A:79:B5:0D:61&stream=1410044&extension=ts"
+  },
+  {
+    "id": "554026",
+    "name": "EUROSPORT 1 (FHD)",
+    "category": "France Sports",
+    "url": "http://dinofox.sbs:80/play/live.php?mac=00:1A:79:B5:0D:61&stream=554026&extension=ts"
+  },
+  {
+    "id": "845373",
+    "name": "EUROSPORT 2 (HEVC)",
+    "category": "France Sports",
+    "url": "http://dinofox.sbs:80/play/live.php?mac=00:1A:79:B5:0D:61&stream=845373&extension=ts"
+  }
+]
