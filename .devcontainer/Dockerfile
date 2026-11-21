@@ -1,7 +1,15 @@
 FROM mcr.microsoft.com/devcontainers/base:ubuntu-22.04
 
-RUN apt-get update && apt-get install -y --no-install-recommends     ffmpeg     curl     wget     ca-certificates     procps     git     && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    curl \
+    wget \
+    ca-certificates \
+    procps \
+    git \
+    python3 \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN wget -q https://github.com/bluenviron/mediamtx/releases/download/v1.9.3/mediamtx_v1.9.3_linux_amd64.tar.gz &&     tar -xzf mediamtx_v1.9.3_linux_amd64.tar.gz -C /usr/local/bin &&     rm mediamtx_v1.9.3_linux_amd64.tar.gz
-
-RUN wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb &&     dpkg -i cloudflared-linux-amd64.deb &&     rm cloudflared-linux-amd64.deb
+RUN wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb && \
+    dpkg -i cloudflared-linux-amd64.deb && \
+    rm cloudflared-linux-amd64.deb
