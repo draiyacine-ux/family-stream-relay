@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 echo "Starting MediaMTX & Cloudflare Tunnel..."
+git pull origin main || true
 pkill -f mediamtx || true
 pkill -f cloudflared || true
 
