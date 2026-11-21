@@ -1,6 +1,8 @@
 {
   "name": "Family Stream Relay",
-  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-22.04",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
   "forwardPorts": [
     8888
   ],
@@ -11,6 +13,5 @@
       "visibility": "public"
     }
   },
-  "postCreateCommand": "bash setup.sh",
-  "postStartCommand": "bash start.sh"
+  "postStartCommand": "nohup /usr/local/bin/mediamtx /workspaces/family-stream-relay/mediamtx.yml > /workspaces/family-stream-relay/mediamtx.log 2>&1 &"
 }
