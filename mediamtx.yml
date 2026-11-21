@@ -1,0 +1,12 @@
+hlsAddress: :8888
+hlsAlwaysRemux: yes
+hlsVariant: mpegts
+hlsSegmentCount: 5
+hlsSegmentDuration: 2s
+hlsPartDuration: 500ms
+paths:
+  all:
+  bein1:
+    source: http://tv2ip.nl:2095/live/734824175695/183317487561/1585779.ts
+    sourceOnDemand: yes
+    sourceOnDemandCloseAfter: 10s
