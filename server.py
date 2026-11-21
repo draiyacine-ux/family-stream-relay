@@ -9,18 +9,18 @@ import threading
 import time
 
 PORT = 8888
-DIRECTORY = "/tmp/hls"
+HLS_DIR = "/tmp/hls"
 CHANNELS_FILE = os.path.join(os.path.dirname(__file__), "channels.json")
 
-active_channel = {
-    "id": "1178453",
-    "name": "beIN SPORTS 1 (4K / UHD)",
-    "category": "beIN Sports (Arabe)",
-    "url": "http://dinofox.sbs:80/play/live.php?mac=00:1A:79:B5:0D:61&stream=1178453&extension=ts"
-}
+MAC = "00:1A:79:B5:0D:61"
+PORTAL_HOST = "dinofox.sbs"
 
+# Global state
+active_stream_id = None
+active_channel_name = "Aucune (En attente)"
 ffmpeg_proc = None
 ffmpeg_lock = threading.Lock()
+last_request_time = time.time()
 
 def load_channels():
     if os.path.exists(CHANNELS_FILE):
@@ -31,25 +31,55 @@ def load_channels():
             print(f"Error loading channels.json: {e}")
     return []
 
-def start_ffmpeg(stream_url):
-    global ffmpeg_proc
+def get_channel_by_id(stream_id):
+    channels = load_channels()
+    for ch in channels:
+        if str(ch.get("id")) == str(stream_id):
+            return ch
+    return None
+
+def start_stream_for_channel(stream_id):
+    global ffmpeg_proc, active_stream_id, active_channel_name, last_request_time
     with ffmpeg_lock:
+        last_request_time = time.time()
+        
+        # If already running this channel and process is alive, nothing to do!
+        if active_stream_id == str(stream_id) and ffmpeg_proc is not None and ffmpeg_proc.poll() is None:
+            return True
+
+        print(f"[On-Demand] Switching stream to channel ID: {stream_id}")
+        
+        # Stop existing FFmpeg process
         if ffmpeg_proc:
-            print("Stopping current FFmpeg process...")
+            print("[On-Demand] Stopping previous FFmpeg process...")
             try:
                 ffmpeg_proc.terminate()
-                ffmpeg_proc.wait(timeout=3)
+                ffmpeg_proc.wait(timeout=2)
             except Exception:
-                ffmpeg_proc.kill()
+                try:
+                    ffmpeg_proc.kill()
+                except Exception:
+                    pass
             ffmpeg_proc = None
 
-        os.makedirs(DIRECTORY, exist_ok=True)
-        # Clear old segments
-        for f in os.listdir(DIRECTORY):
+        # Clean HLS directory
+        os.makedirs(HLS_DIR, exist_ok=True)
+        for f in os.listdir(HLS_DIR):
             try:
-                os.remove(os.path.join(DIRECTORY, f))
+                os.remove(os.path.join(HLS_DIR, f))
             except Exception:
                 pass
+
+        ch = get_channel_by_id(stream_id)
+        if ch:
+            stream_url = ch.get("url")
+            active_channel_name = ch.get("name", f"Canal {stream_id}")
+        else:
+            stream_url = f"http://{PORTAL_HOST}:80/play/live.php?mac={MAC}&stream={stream_id}&extension=ts"
+            active_channel_name = f"Canal {stream_id}"
+
+        active_stream_id = str(stream_id)
+        playlist_path = os.path.join(HLS_DIR, "live.m3u8")
 
         cmd = [
             "ffmpeg",
@@ -65,14 +95,25 @@ def start_ffmpeg(stream_url):
             "-hls_list_size", "6",
             "-hls_flags", "delete_segments",
             "-hls_segment_type", "mpegts",
-            f"{DIRECTORY}/bein1.m3u8"
+            playlist_path
         ]
-        print(f"Starting FFmpeg: {' '.join(cmd)}")
+        
+        print(f"[On-Demand] Starting FFmpeg: {stream_url}")
         ffmpeg_proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-class RelayHandler(http.server.SimpleHTTPRequestHandler):
+        # Also create symlink or alias for legacy bein1.m3u8
+        # Wait up to 3.5 seconds for playlist creation
+        for _ in range(35):
+            time.sleep(0.1)
+            if os.path.exists(playlist_path) and os.path.getsize(playlist_path) > 0:
+                print(f"[On-Demand] Playlist ready for channel {stream_id}!")
+                break
+
+        return True
+
+class OnDemandRelayHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, directory=DIRECTORY, **kwargs)
+        super().__init__(*args, directory=HLS_DIR, **kwargs)
 
     def end_headers(self):
         self.send_header('Access-Control-Allow-Origin', '*')
@@ -88,25 +129,55 @@ class RelayHandler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
+        global last_request_time
+        last_request_time = time.time()
+
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
+        query = urllib.parse.parse_qs(parsed.query)
+
+        # 1. Traitement des requêtes On-Demand : /hls/<stream_id>.m3u8
+        if path.startswith("/hls/") and path.endswith(".m3u8"):
+            stream_id = path.replace("/hls/", "").replace(".m3u8", "").strip()
+            if stream_id:
+                start_stream_for_channel(stream_id)
+                # Servir live.m3u8
+                self.path = "/live.m3u8"
+                return super().do_GET()
+
+        # 2. Rétro-compatibilité : /bein1.m3u8 ou /live.m3u8
+        if path in ["/bein1.m3u8", "/live.m3u8"]:
+            if active_stream_id is None:
+                # Démarrage par défaut sur beIN Sports 1
+                start_stream_for_channel("1178453")
+            self.path = "/live.m3u8"
+            return super().do_GET()
+
+        # 3. Segments .ts : servis directement depuis HLS_DIR
+        if path.endswith(".ts"):
+            # Remapper chemin si préfixé par /hls/
+            if path.startswith("/hls/"):
+                self.path = "/" + os.path.basename(path)
+            return super().do_GET()
+
+        # 4. APIs & Statut
+        if path == "/api/status":
+            self.render_json({
+                "status": "online",
+                "mode": "on_demand",
+                "active_stream_id": active_stream_id,
+                "active_channel_name": active_channel_name,
+                "ffmpeg_running": ffmpeg_proc is not None and ffmpeg_proc.poll() is None
+            })
+            return
+
+        if path == "/api/channels":
+            self.render_json(load_channels())
+            return
 
         if path == "/control":
             self.render_control_page()
             return
-        elif path == "/api/status":
-            self.render_json({
-                "status": "online",
-                "active_channel": active_channel,
-                "ffmpeg_running": ffmpeg_proc is not None and ffmpeg_proc.poll() is None
-            })
-            return
-        elif path == "/api/channels":
-            self.render_json(load_channels())
-            return
-        elif path == "/live.m3u8":
-            # Alias for bein1.m3u8
-            self.path = "/bein1.m3u8"
 
         return super().do_GET()
 
@@ -117,30 +188,15 @@ class RelayHandler(http.server.SimpleHTTPRequestHandler):
             body = self.rfile.read(content_length).decode('utf-8')
             params = urllib.parse.parse_qs(body)
             target_id = params.get("id", [""])[0]
-            custom_url = params.get("custom_url", [""])[0]
 
-            channels = load_channels()
-            target_ch = next((c for c in channels if c.get("id") == target_id), None)
-
-            if target_ch:
-                active_channel.update(target_ch)
-                start_ffmpeg(target_ch["url"])
-                self.send_response(303)
-                self.send_header("Location", "/control")
-                self.end_headers()
-                return
-            elif custom_url.startswith("http"):
-                active_channel["id"] = "custom"
-                active_channel["name"] = "Flux Personnalisé"
-                active_channel["category"] = "Custom"
-                active_channel["url"] = custom_url
-                start_ffmpeg(custom_url)
+            if target_id:
+                start_stream_for_channel(target_id)
                 self.send_response(303)
                 self.send_header("Location", "/control")
                 self.end_headers()
                 return
 
-            self.render_json({"error": "Channel not found"}, 400)
+            self.render_json({"error": "Missing id"}, 400)
             return
 
         self.send_error(404, "Endpoint not found")
@@ -164,7 +220,7 @@ class RelayHandler(http.server.SimpleHTTPRequestHandler):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Family Stream - Centre de Contrôle Relais VIP</title>
+    <title>Family Stream - Relais On-Demand Automatique</title>
     <style>
         body {{
             background: #0f172a;
@@ -226,7 +282,6 @@ class RelayHandler(http.server.SimpleHTTPRequestHandler):
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            transition: all 0.2s;
         }}
         .channel-card.active {{
             border-color: #38bdf8;
@@ -248,71 +303,45 @@ class RelayHandler(http.server.SimpleHTTPRequestHandler):
             cursor: pointer;
             width: 100%;
         }}
-        .btn:hover {{
-            background: #2563eb;
-        }}
         .btn.active-btn {{
             background: #22c55e;
             cursor: default;
-        }}
-        .custom-form {{
-            background: #1e293b;
-            border: 1px solid #334155;
-            padding: 16px;
-            border-radius: 8px;
-            margin-top: 16px;
-            display: flex;
-            gap: 10px;
-        }}
-        .custom-input {{
-            flex: 1;
-            background: #0f172a;
-            border: 1px solid #334155;
-            color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
         }}
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <span class="badge">🟢 Relais En Ligne</span>
+            <span class="badge">🟢 Mode Automatique (On-Demand)</span>
             <h1 style="margin: 10px 0 5px 0; font-size: 22px;">⚡ Family Stream - Relais VIP</h1>
-            <p style="margin: 0; color: #94a3b8; font-size: 14px;">Diffusion haute vitesse 1 Gbps • beIN Sports & France Sports</p>
+            <p style="margin: 0; color: #94a3b8; font-size: 14px;">Les chaînes démarrent automatiquement dès qu'un utilisateur clique dans l'application Android.</p>
             <div style="margin-top: 14px;">
-                <div style="font-size: 12px; color: #94a3b8;">CHAÎNE ACTUELLEMENT DIFFUSÉE :</div>
-                <div style="font-size: 18px; font-weight: 700; color: #f59e0b; margin-top: 2px;">{active_channel.get('name')}</div>
+                <div style="font-size: 12px; color: #94a3b8;">CHAÎNE ACTUELLEMENT DEMANDÉE :</div>
+                <div style="font-size: 18px; font-weight: 700; color: #f59e0b; margin-top: 2px;">{active_channel_name}</div>
             </div>
-            <div class="stream-url">/bein1.m3u8 (ou /live.m3u8)</div>
+            <div class="stream-url">Format d'appel direct : /hls/&lt;id&gt;.m3u8</div>
         </div>
 """
         for cat_name, cat_channels in categories.items():
             html += f"<h2>{cat_name}</h2><div class='grid'>"
             for ch in cat_channels:
-                is_active = (ch.get("id") == active_channel.get("id"))
+                is_active = (str(ch.get("id")) == str(active_stream_id))
                 active_cls = " active" if is_active else ""
                 btn_cls = " active-btn" if is_active else ""
-                btn_text = "✓ Diffusée" if is_active else "Diffuser ce match"
-                disabled = " disabled" if is_active else ""
+                btn_text = "✓ En cours de diffusion" if is_active else "Tester manuellement"
 
                 html += f"""
                 <div class="channel-card{active_cls}">
                     <div class="channel-name">{ch.get('name')}</div>
                     <form method="POST" action="/api/switch">
                         <input type="hidden" name="id" value="{ch.get('id')}">
-                        <button type="submit" class="btn{btn_cls}"{disabled}>{btn_text}</button>
+                        <button type="submit" class="btn{btn_cls}">{btn_text}</button>
                     </form>
                 </div>
                 """
             html += "</div>"
 
-        html += f"""
-        <h2>Lien direct personnalisé</h2>
-        <form class="custom-form" method="POST" action="/api/switch">
-            <input type="text" name="custom_url" class="custom-input" placeholder="http://... ou lien direct .ts">
-            <button type="submit" class="btn" style="width: auto;">Activer</button>
-        </form>
+        html += """
     </div>
 </body>
 </html>
@@ -325,16 +354,13 @@ class RelayHandler(http.server.SimpleHTTPRequestHandler):
         self.wfile.write(body)
 
 if __name__ == "__main__":
-    os.makedirs(DIRECTORY, exist_ok=True)
-    # Start default channel
-    channels = load_channels()
-    if channels:
-        active_channel.update(channels[0])
-    start_ffmpeg(active_channel["url"])
+    os.makedirs(HLS_DIR, exist_ok=True)
+    # Start default stream on boot (beIN Sports 1)
+    start_stream_for_channel("1178453")
 
     socketserver.TCPServer.allow_reuse_address = True
-    with socketserver.TCPServer(("", PORT), RelayHandler) as httpd:
-        print(f"Server running on port {PORT}", flush=True)
+    with socketserver.TCPServer(("", PORT), OnDemandRelayHandler) as httpd:
+        print(f"[On-Demand] Server running on port {PORT}", flush=True)
         try:
             httpd.serve_forever()
         finally:
