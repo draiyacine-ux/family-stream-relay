@@ -5,27 +5,12 @@ cd /workspaces/family-stream-relay 2>/dev/null || cd "$(dirname "$0")"
 mkdir -p /tmp/hls
 pkill -9 -f ffmpeg || true
 pkill -9 -f cloudflared || true
-pkill -9 -f http.server || true
+pkill -9 -f python3 || true
 rm -rf /tmp/hls/*
 sleep 1
 
-# 1. Start Python HTTP Server with CORS on port 8888
-python3 -c '
-import http.server
-import socketserver
-
-class CORSHandler(http.server.SimpleHTTPRequestHandler):
-    def end_headers(self):
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "*")
-        self.send_header("Cache-Control", "no-cache")
-        super().end_headers()
-
-socketserver.TCPServer.allow_reuse_address = True
-with socketserver.TCPServer(("0.0.0.0", 8888), CORSHandler) as httpd:
-    httpd.serve_forever()
-' --directory /tmp/hls > /tmp/http.log 2>&1 &
+# 1. Start Python HTTP Server directly from /tmp/hls
+(cd /tmp/hls && nohup python3 -m http.server 8888 > /tmp/http.log 2>&1 &)
 echo "Web server running on port 8888"
 
 # 2. Start Cloudflare Tunnel
@@ -45,7 +30,7 @@ echo "FFmpeg HLS generator started"
 # 4. Wait for tunnel URL and first m3u8
 sleep 5
 TUNNEL_URL=""
-for i in {1..20}; do
+for i in {1..25}; do
   sleep 1
   TUNNEL_URL=$(grep -o 'https://[a-zA-Z0-9-]*\.trycloudflare\.com' /tmp/tunnel.log | head -1)
   if [ -n "$TUNNEL_URL" ] && [ -f /tmp/hls/bein1.m3u8 ]; then
