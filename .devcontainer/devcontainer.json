@@ -1,0 +1,16 @@
+{
+  "name": "Family Stream Relay",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-22.04",
+  "forwardPorts": [
+    8888
+  ],
+  "portsAttributes": {
+    "8888": {
+      "label": "Family Stream HLS Relay",
+      "onAutoForward": "silent",
+      "visibility": "public"
+    }
+  },
+  "postCreateCommand": "bash setup.sh",
+  "postStartCommand": "bash start.sh"
+}
