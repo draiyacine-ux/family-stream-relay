@@ -11,7 +11,5 @@ rtspAddress: :8554
 paths:
   all:
   bein1:
-    runOnDemand: ffmpeg -re -i "http://tv2ip.nl:2095/live/734824175695/183317487561/1585779.ts" -c copy -f rtsp -rtsp_transport tcp rtsp://localhost:8554/bein1
-    runOnDemandRestart: yes
-    runOnDemandStartTimeout: 20s
-    runOnDemandCloseAfter: 15s
+    runOnInit: ffmpeg -user_agent "VLC/3.0.18" -re -i "http://tv2ip.nl:2095/live/734824175695/183317487561/1585779.ts" -c copy -f rtsp -rtsp_transport tcp rtsp://localhost:8554/bein1
+    runOnInitRestart: yes
